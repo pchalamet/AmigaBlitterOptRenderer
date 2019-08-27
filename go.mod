@@ -1,4 +1,4 @@
-module github.com/pchalamet/optrenderer
+module github.com/pchalamet/AmigaBlitterOptRenderer
 
 go 1.12
 

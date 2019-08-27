@@ -6,7 +6,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/pchalamet/optrenderer/pkg/foundation"
+	"github.com/pchalamet/AmigaBlitterOptRenderer/foundation"
 )
 
 func main() {
