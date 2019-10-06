@@ -10,25 +10,25 @@ func TestBoundingBoxAdd(t *testing.T) {
 	bb.Add(Point{2, 2})
 	bb.Add(Point{4, 5})
 
-	if ! equalWithUncertainty(bb.Min.X, 1.0) {
-		t.Errorf("Unexpected value MinX %f", bb.Min.X)
+	if ! equalWithUncertainty(bb.min.X, 1.0) {
+		t.Errorf("Unexpected value MinX %f", bb.min.X)
 	}
 
-	if ! equalWithUncertainty(bb.Min.Y, 1.0) {
-		t.Errorf("Unexpected value MinY %f", bb.Min.Y)
+	if ! equalWithUncertainty(bb.min.Y, 1.0) {
+		t.Errorf("Unexpected value MinY %f", bb.min.Y)
 	}
 
-	if ! equalWithUncertainty(bb.Max.X, 4.0) {
-		t.Errorf("Unexpected value MaxX %f", bb.Max.X)
+	if ! equalWithUncertainty(bb.max.X, 4.0) {
+		t.Errorf("Unexpected value MaxX %f", bb.max.X)
 	}
 
-	if ! equalWithUncertainty(bb.Max.Y, 5.0) {
-		t.Errorf("Unexpected value MaxY %f", bb.Max.Y)
+	if ! equalWithUncertainty(bb.max.Y, 5.0) {
+		t.Errorf("Unexpected value MaxY %f", bb.max.Y)
 	}
 }
 
 func TestBoundingBoxInside(t *testing.T) {
-	bb := BoundingBox{ Min:Point{1, 1}, Max:Point{10, 10} }
+	bb := BoundingBox{ min:Point{1, 1}, max:Point{10, 10} }
 
 	if !bb.Inside(Point{1, 1}) {
 		t.Error("Unexpected result for Inside")
@@ -44,9 +44,9 @@ func TestBoundingBoxInside(t *testing.T) {
 }
 
 func TestBoundingBoxInsersect(t *testing.T) {
-	bb1 := BoundingBox{ Min:Point{1, 1}, Max:Point{10, 10} }
-	bb2 := BoundingBox{ Min:Point{2, 2}, Max:Point{10, 10} }
-	bb3 := BoundingBox{ Min:Point{20, 20}, Max:Point{30, 30} }
+	bb1 := BoundingBox{ min:Point{1, 1}, max:Point{10, 10} }
+	bb2 := BoundingBox{ min:Point{2, 2}, max:Point{10, 10} }
+	bb3 := BoundingBox{ min:Point{20, 20}, max:Point{30, 30} }
 
 	if !bb1.Intersect(bb2) {
 		t.Error("BoundingBox's should intersect")

@@ -5,8 +5,8 @@ import (
 )
 
 type BoundingBox struct {
-	Min Point
-	Max Point
+	min Point
+	max Point
 }
 
 func NewBoundingBox() BoundingBox {
@@ -18,19 +18,19 @@ func NewBoundingBox() BoundingBox {
 }
 
 func (bb1 BoundingBox) Intersect(bb2 BoundingBox) bool {
-	return (bb2.Max.X >= bb1.Min.X) && (bb2.Min.X <= bb1.Max.X) && (bb2.Max.Y >= bb1.Min.Y) && (bb2.Min.Y <= bb1.Max.Y)
+	return (bb2.max.X >= bb1.min.X) && (bb2.min.X <= bb1.max.X) && (bb2.max.Y >= bb1.min.Y) && (bb2.min.Y <= bb1.max.Y)
 }
 
 func (bb BoundingBox) Inside(pt Point) bool {
-	return (bb.Min.X <= pt.X) && (bb.Min.Y <= pt.Y) && (pt.X <= bb.Max.X) && (pt.Y <= bb.Max.Y)
+	return (bb.min.X <= pt.X) && (bb.min.Y <= pt.Y) && (pt.X <= bb.max.X) && (pt.Y <= bb.max.Y)
 }
 
 func (bb* BoundingBox) Add(pt Point) {
-	minX := math.Min(pt.X, bb.Min.X)
-	minY := math.Min(pt.Y, bb.Min.Y)
-	maxX := math.Max(pt.X, bb.Max.X)
-	maxY := math.Max(pt.Y, bb.Max.Y)
+	minX := math.Min(pt.X, bb.min.X)
+	minY := math.Min(pt.Y, bb.min.Y)
+	maxX := math.Max(pt.X, bb.max.X)
+	maxY := math.Max(pt.Y, bb.max.Y)
 
-	bb.Min = Point{minX, minY}
-	bb.Max = Point{maxX, maxY}
+	bb.min = Point{minX, minY}
+	bb.max = Point{maxX, maxY}
 }
