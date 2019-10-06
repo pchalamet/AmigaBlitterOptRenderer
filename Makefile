@@ -4,7 +4,15 @@
 # 	echo $(GOPATH)
 # 	go build -gcflags="-m"  -ldflags="-s -w" 
 
+all: build-all test-all
+
+
 convert-app:
 	go build -o bin/convert.exe cmd/convert/main.go
 
-all: convert-app
+build-all:
+	go build ./...
+
+test-all:
+	go test ./...	
+

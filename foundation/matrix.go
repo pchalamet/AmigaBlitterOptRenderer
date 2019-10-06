@@ -1,6 +1,5 @@
 package foundation
 
-import "errors"
 import "math"
 
 type Matrix struct {

@@ -1,5 +1,7 @@
 package foundation
 
+import "math"
+
 type vector3Consts struct {
     Zero Vector3
     One Vector3
@@ -41,5 +43,23 @@ var MatrixConsts = matrixConsts {
 					  0.0, 1.0, 0.0, 0.0,
 					  0.0, 0.0, 1.0, 0.0,
 					  0.0, 0.0, 0.0, 1.0 },
+}
+
+
+
+type mathConsts struct {
+    Pi float64
+    PiOver2 float64
+    PiOver4 float64
+    TwoPi float64
+    Epsilon float64
+}
+
+var MathConsts = mathConsts {
+    Pi: math.Pi,
+    PiOver2: math.Pi/2.0,
+    PiOver4: math.Pi/4.0,
+    TwoPi: math.Pi*2.0,
+    Epsilon: 0.01,
 }
 
