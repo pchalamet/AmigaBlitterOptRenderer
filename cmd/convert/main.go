@@ -13,4 +13,7 @@ func main() {
 	vec := foundation.NewVector3(1, 2, 3)
 	fmt.Println(vec.X)
 	fmt.Println("Hello")
+
+	vec = foundation.Vector3Consts.One
+	fmt.Println(vec)
 }

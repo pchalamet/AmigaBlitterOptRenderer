@@ -1,5 +1,8 @@
 package foundation
 
+import "errors"
+import "math"
+
 type Matrix struct {
 	M11 float64
 	M12 float64
@@ -19,16 +22,6 @@ type Matrix struct {
 	M44 float64
 }
 
-func IdentityMatrix() Matrix {
-	return Matrix{1.0, 0.0, 0.0, 0.0,
-		0.0, 1.0, 0.0, 0.0,
-		0.0, 0.0, 1.0, 0.0,
-		0.0, 0.0, 0.0, 1.0}
-}
-
-func ZeroMatrix() Matrix {
-	return Matrix{}
-}
 
 func (this Matrix) Item(index int) float64 {
 	switch index {
@@ -83,204 +76,225 @@ func CreateLookAt(cameraPosition, cameraTarget, cameraUpVector Vector3) Matrix {
                    -vector2.Dot(cameraPosition), -vector3.Dot(cameraPosition), -vector.Dot(cameraPosition), 1.0 }
 }
 
+func CreatePerspective (width, height, nearPlaneDistance, farPlaneDistance float64) Matrix {
+	if nearPlaneDistance <= 0.0 {
+		panic("nearPlaneDistance <= 0")
+	}
+    if farPlaneDistance <= 0.0 {
+		panic("farPlaneDistance <= 0")
+	}
+    if nearPlaneDistance >= farPlaneDistance {
+		panic("nearPlaneDistance >= farPlaneDistance")
+	}
 
-// static member CreateLookAt (cameraPosition : Vector3) (cameraTarget : Vector3) (cameraUpVector : Vector3) =
+    return Matrix{ (2.0 * nearPlaneDistance) / width, 0.0, 0.0, 0.0,
+           		   0.0, (2.0 * nearPlaneDistance) / height, 0.0, 0.0,
+           		   0.0, 0.0, farPlaneDistance / (nearPlaneDistance - farPlaneDistance), -1.0,
+           		   0.0, 0.0, (nearPlaneDistance * farPlaneDistance) / (nearPlaneDistance - farPlaneDistance), 0.0 }
+}
 
-// static member CreatePerspective (width : float) (height : float) (nearPlaneDistance : float) (farPlaneDistance : float) =
-//     if nearPlaneDistance <= 0.0 then failwith "nearPlaneDistance <= 0"
-//     if farPlaneDistance <= 0.0 then failwith "farPlaneDistance <= 0"
-//     if (nearPlaneDistance >= farPlaneDistance) then failwith "nearPlaneDistance >= farPlaneDistance"
 
-//     Matrix((2.0 * nearPlaneDistance) / width, 0.0, 0.0, 0.0,
-//            0.0, (2.0 * nearPlaneDistance) / height, 0.0, 0.0,
-//            0.0, 0.0, farPlaneDistance / (nearPlaneDistance - farPlaneDistance), -1.0,
-//            0.0, 0.0, (nearPlaneDistance * farPlaneDistance) / (nearPlaneDistance - farPlaneDistance), 0.0)
+func CreatePerspectiveOffCenter (left, right, bottom, top, nearPlaneDistance, farPlaneDistance float64) Matrix {
+    if nearPlaneDistance <= 0.0 {
+		panic("nearPlaneDistance <= 0")
+	}
+    if farPlaneDistance <= 0.0 {
+		panic("farPlaneDistance <= 0")
+	}
+    if nearPlaneDistance >= farPlaneDistance {
+		panic("nearPlaneDistance >= farPlaneDistance")
+	}
 
-// static member CreatePerspectiveOffCenter (left : float) (right : float) (bottom : float) (top : float) (nearPlaneDistance : float) (farPlaneDistance : float) =
-//     if nearPlaneDistance <= 0.0 then failwith "nearPlaneDistance <= 0"
-//     if farPlaneDistance <= 0.0 then failwith "farPlaneDistance <= 0"
-//     if nearPlaneDistance >= farPlaneDistance then failwith "nearPlaneDistance >= farPlaneDistance"
+    numW := (2.0 * nearPlaneDistance) / (right - left)
+    numH := (2.0 * nearPlaneDistance) / (top - bottom)
+    return Matrix{ numW, 0.0, 0.0, 0.0,
+           		   0.0, numH, 0.0, 0.0,
+                   (left + right) / (right - left), (top + bottom) / (top - bottom), (nearPlaneDistance + farPlaneDistance) / (nearPlaneDistance - farPlaneDistance), -1.0,
+           		   0.0, 0.0, (2.0 * nearPlaneDistance * farPlaneDistance) / (nearPlaneDistance - farPlaneDistance), 0.0 }
+}
 
-//     let numW = (2.0 * nearPlaneDistance) / (right - left)
-//     let numH = (2.0 * nearPlaneDistance) / (top - bottom)
-//     Matrix(numW, 0.0, 0.0, 0.0,
-//            0.0, numH, 0.0, 0.0,
-//            (left + right) / (right - left), (top + bottom) / (top - bottom), (nearPlaneDistance + farPlaneDistance) / (nearPlaneDistance - farPlaneDistance), -1.0,
-//            0.0, 0.0, (2.0 * nearPlaneDistance * farPlaneDistance) / (nearPlaneDistance - farPlaneDistance), 0.0)
+func CreatePerspectiveFieldOfView (fieldOfView, aspectRatio, nearPlaneDistance, farPlaneDistance float64) Matrix {
+    if fieldOfView <= 0.0 || fieldOfView >= 3.141593 {
+		panic("fieldOfView <= 0 or >= PI")
+	}
+    if nearPlaneDistance <= 0.0 {
+		panic("nearPlaneDistance <= 0")
+	}
+    if farPlaneDistance <= 0.0 {
+		panic("farPlaneDistance <= 0")
+	}
+    if nearPlaneDistance >= farPlaneDistance {
+		panic("nearPlaneDistance >= farPlaneDistance")
+	}
 
-// static member CreatePerspectiveFieldOfView (fieldOfView : float) (aspectRatio : float) (nearPlaneDistance : float) (farPlaneDistance : float) =
-//     if fieldOfView <= 0.0 || fieldOfView >= 3.141593 then failwith "fieldOfView <= 0 or >= PI"
-//     if nearPlaneDistance <= 0.0 then failwith "nearPlaneDistance <= 0"
-//     if farPlaneDistance <= 0.0 then failwith "farPlaneDistance <= 0"
-//     if nearPlaneDistance >= farPlaneDistance then failwith "nearPlaneDistance >= farPlaneDistance"
-//     let top = nearPlaneDistance * tan (fieldOfView / 2.0)
-//     let bottom = -top
-//     Matrix.CreatePerspectiveOffCenter (bottom*aspectRatio) (top*aspectRatio) bottom top nearPlaneDistance farPlaneDistance
+    top := nearPlaneDistance * math.Tan(fieldOfView / 2.0)
+    bottom := -top
+	return CreatePerspectiveOffCenter((bottom*aspectRatio), (top*aspectRatio), bottom, top, nearPlaneDistance, farPlaneDistance)
+}
 
-// static member CreateRotationX (radians : float) =
-//     let val1 = cos radians
-//     let val2 = sin radians
-//     Matrix(1.0, 0.0, 0.0, 0.0,
-//            0.0, val1, val2, 0.0,
-//            0.0, -val2, val1, 0.0,
-//            0.0, 0.0, 0.0, 1.0)
+func CreateRotationX (radians float64) Matrix {
+    val1 := math.Cos(radians)
+    val2 := math.Sin(radians)
+    return Matrix{ 1.0, 0.0, 0.0, 0.0,
+            	   0.0, val1, val2, 0.0,
+                   0.0, -val2, val1, 0.0,
+		           0.0, 0.0, 0.0, 1.0 }
+}
 
-// static member CreateRotationY (radians : float) =
-//     let val1 = cos radians
-//     let val2 = sin radians
-//     Matrix(val1, 0.0, -val2, 0.0,
-//            0.0, 1.0, 0.0, 0.0,
-//            val2, 0.0, val1, 0.0,
-//            0.0, 0.0, 0.0, 1.0)
+func CreateRotationY (radians float64) Matrix {
+    val1 := math.Cos(radians)
+    val2 := math.Sin(radians)
+    return Matrix{ val1, 0.0, -val2, 0.0,
+           		   0.0, 1.0, 0.0, 0.0,
+           		   val2, 0.0, val1, 0.0,
+           		   0.0, 0.0, 0.0, 1.0 }
+}
 
-// static member CreateRotationZ (radians : float) =
-//     let val1 = cos radians
-//     let val2 = sin radians
-//     Matrix(val1, val2, 0.0, 0.0,
-//            -val2, val1, 0.0, 0.0,
-//            0.0, 0.0, 1.0, 0.0,
-//            0.0, 0.0, 0.0, 1.0)
+func CreateRotationZ (radians float64) Matrix {
+    val1 := math.Cos(radians)
+    val2 := math.Sin(radians)
+    return Matrix{ val1, val2, 0.0, 0.0,
+           		   -val2, val1, 0.0, 0.0,
+           		   0.0, 0.0, 1.0, 0.0,
+	 			   0.0, 0.0, 0.0, 1.0 }
+}
 
-// static member CreateScale (scaleX : float) (scaleY : float ) (scaleZ : float) =
-//     Matrix(scaleX, 0.0, 0.0, 0.0,
-//            0.0, scaleY, 0.0, 0.0,
-//            0.0, 0.0, scaleZ, 0.0,
-//            0.0, 0.0, 0.0, 1.0)
+func CreateScale (scaleX, scaleY, scaleZ float64) Matrix {
+    return Matrix{ scaleX, 0.0, 0.0, 0.0,
+           		   0.0, scaleY, 0.0, 0.0,
+           		   0.0, 0.0, scaleZ, 0.0,
+					  0.0, 0.0, 0.0, 1.0 }
+}
 
-// static member CreateTranslation positionX positionY positionZ =
-//     Matrix(1.0, 0.0, 0.0, 0.0,
-//            0.0, 1.0, 0.0, 0.0,
-//            0.0, 0.0, 1.0, 0.0,
-//            positionX, positionY, positionZ, 1.0)
+func CreateTranslation(positionX, positionY, positionZ float64) Matrix {
+    return Matrix{ 1.0, 0.0, 0.0, 0.0,
+           		   0.0, 1.0, 0.0, 0.0,
+           		   0.0, 0.0, 1.0, 0.0,
+		   		   positionX, positionY, positionZ, 1.0 }
+}
 
-// static member inline (+) (m1 : Matrix, m2 : Matrix) =
-//     Matrix(m1.M11 + m2.M11, m1.M12 + m2.M12, m1.M13 + m2.M13, m1.M14 + m2.M14,
-//            m1.M21 + m2.M21, m1.M22 + m2.M22, m1.M23 + m2.M23, m1.M24 + m2.M24,
-//            m1.M31 + m2.M31, m1.M32 + m2.M32, m1.M33 + m2.M33, m1.M34 + m2.M34,
-//            m1.M41 + m2.M41, m1.M42 + m2.M42, m1.M43 + m2.M43, m1.M44 + m2.M44)
+func (m1 Matrix) Add(m2 Matrix) Matrix {
+    return Matrix{ m1.M11 + m2.M11, m1.M12 + m2.M12, m1.M13 + m2.M13, m1.M14 + m2.M14,
+           		   m1.M21 + m2.M21, m1.M22 + m2.M22, m1.M23 + m2.M23, m1.M24 + m2.M24,
+           		   m1.M31 + m2.M31, m1.M32 + m2.M32, m1.M33 + m2.M33, m1.M34 + m2.M34,
+		   		   m1.M41 + m2.M41, m1.M42 + m2.M42, m1.M43 + m2.M43, m1.M44 + m2.M44 }
+}
 
-// static member inline (-) (m1 : Matrix, m2 : Matrix) =
-//     Matrix(m1.M11 - m2.M11, m1.M12 - m2.M12, m1.M13 - m2.M13, m1.M14 - m2.M14,
-//            m1.M21 - m2.M21, m1.M22 - m2.M22, m1.M23 - m2.M23, m1.M24 - m2.M24,
-//            m1.M31 - m2.M31, m1.M32 - m2.M32, m1.M33 - m2.M33, m1.M34 - m2.M34,
-//            m1.M41 - m2.M41, m1.M42 - m2.M42, m1.M43 - m2.M43, m1.M44 - m2.M44)
+func (m1 Matrix) Sub(m2 Matrix) Matrix {
+    return Matrix{ m1.M11 - m2.M11, m1.M12 - m2.M12, m1.M13 - m2.M13, m1.M14 - m2.M14,
+           		   m1.M21 - m2.M21, m1.M22 - m2.M22, m1.M23 - m2.M23, m1.M24 - m2.M24,
+           		   m1.M31 - m2.M31, m1.M32 - m2.M32, m1.M33 - m2.M33, m1.M34 - m2.M34,
+		   		   m1.M41 - m2.M41, m1.M42 - m2.M42, m1.M43 - m2.M43, m1.M44 - m2.M44 }
+}
 
-// static member inline (~-) (m : Matrix) =
-//     Matrix(-m.M11, -m.M12, -m.M13, -m.M14,
-//            -m.M21, -m.M22, -m.M23, -m.M24,
-//            -m.M31, -m.M32, -m.M33, -m.M34,
-//            -m.M41, -m.M42, -m.M43, -m.M44)
+func (m Matrix) Neg() Matrix {
+    return Matrix{ -m.M11, -m.M12, -m.M13, -m.M14,
+           		   -m.M21, -m.M22, -m.M23, -m.M24,
+           		   -m.M31, -m.M32, -m.M33, -m.M34,
+		   		   -m.M41, -m.M42, -m.M43, -m.M44 }
+}
 
-// static member inline (*) (m1 : Matrix, m2 : Matrix) =
-//     let m11 = (m1.M11 * m2.M11) + (m1.M12 * m2.M21) + (m1.M13 * m2.M31) + (m1.M14 * m2.M41)
-//     let m12 = (m1.M11 * m2.M12) + (m1.M12 * m2.M22) + (m1.M13 * m2.M32) + (m1.M14 * m2.M42)
-//     let m13 = (m1.M11 * m2.M13) + (m1.M12 * m2.M23) + (m1.M13 * m2.M33) + (m1.M14 * m2.M43)
-//     let m14 = (m1.M11 * m2.M14) + (m1.M12 * m2.M24) + (m1.M13 * m2.M34) + (m1.M14 * m2.M44)
-//     let m21 = (m1.M21 * m2.M11) + (m1.M22 * m2.M21) + (m1.M23 * m2.M31) + (m1.M24 * m2.M41)
-//     let m22 = (m1.M21 * m2.M12) + (m1.M22 * m2.M22) + (m1.M23 * m2.M32) + (m1.M24 * m2.M42)
-//     let m23 = (m1.M21 * m2.M13) + (m1.M22 * m2.M23) + (m1.M23 * m2.M33) + (m1.M24 * m2.M43)
-//     let m24 = (m1.M21 * m2.M14) + (m1.M22 * m2.M24) + (m1.M23 * m2.M34) + (m1.M24 * m2.M44)
-//     let m31 = (m1.M31 * m2.M11) + (m1.M32 * m2.M21) + (m1.M33 * m2.M31) + (m1.M34 * m2.M41)
-//     let m32 = (m1.M31 * m2.M12) + (m1.M32 * m2.M22) + (m1.M33 * m2.M32) + (m1.M34 * m2.M42)
-//     let m33 = (m1.M31 * m2.M13) + (m1.M32 * m2.M23) + (m1.M33 * m2.M33) + (m1.M34 * m2.M43)
-//     let m34 = (m1.M31 * m2.M14) + (m1.M32 * m2.M24) + (m1.M33 * m2.M34) + (m1.M34 * m2.M44)
-//     let m41 = (m1.M41 * m2.M11) + (m1.M42 * m2.M21) + (m1.M43 * m2.M31) + (m1.M44 * m2.M41)
-//     let m42 = (m1.M41 * m2.M12) + (m1.M42 * m2.M22) + (m1.M43 * m2.M32) + (m1.M44 * m2.M42)
-//     let m43 = (m1.M41 * m2.M13) + (m1.M42 * m2.M23) + (m1.M43 * m2.M33) + (m1.M44 * m2.M43)
-//     let m44 = (m1.M41 * m2.M14) + (m1.M42 * m2.M24) + (m1.M43 * m2.M34) + (m1.M44 * m2.M44)
-//     Matrix(m11, m12, m13, m14,
-//            m21, m22, m23, m24,
-//            m31, m32, m33, m34,
-//            m41, m42, m43, m44)
+func (m1 Matrix) Compose (m2 Matrix) Matrix {
+    m11 := (m1.M11 * m2.M11) + (m1.M12 * m2.M21) + (m1.M13 * m2.M31) + (m1.M14 * m2.M41)
+    m12 := (m1.M11 * m2.M12) + (m1.M12 * m2.M22) + (m1.M13 * m2.M32) + (m1.M14 * m2.M42)
+    m13 := (m1.M11 * m2.M13) + (m1.M12 * m2.M23) + (m1.M13 * m2.M33) + (m1.M14 * m2.M43)
+    m14 := (m1.M11 * m2.M14) + (m1.M12 * m2.M24) + (m1.M13 * m2.M34) + (m1.M14 * m2.M44)
+    m21 := (m1.M21 * m2.M11) + (m1.M22 * m2.M21) + (m1.M23 * m2.M31) + (m1.M24 * m2.M41)
+    m22 := (m1.M21 * m2.M12) + (m1.M22 * m2.M22) + (m1.M23 * m2.M32) + (m1.M24 * m2.M42)
+    m23 := (m1.M21 * m2.M13) + (m1.M22 * m2.M23) + (m1.M23 * m2.M33) + (m1.M24 * m2.M43)
+    m24 := (m1.M21 * m2.M14) + (m1.M22 * m2.M24) + (m1.M23 * m2.M34) + (m1.M24 * m2.M44)
+    m31 := (m1.M31 * m2.M11) + (m1.M32 * m2.M21) + (m1.M33 * m2.M31) + (m1.M34 * m2.M41)
+    m32 := (m1.M31 * m2.M12) + (m1.M32 * m2.M22) + (m1.M33 * m2.M32) + (m1.M34 * m2.M42)
+    m33 := (m1.M31 * m2.M13) + (m1.M32 * m2.M23) + (m1.M33 * m2.M33) + (m1.M34 * m2.M43)
+    m34 := (m1.M31 * m2.M14) + (m1.M32 * m2.M24) + (m1.M33 * m2.M34) + (m1.M34 * m2.M44)
+    m41 := (m1.M41 * m2.M11) + (m1.M42 * m2.M21) + (m1.M43 * m2.M31) + (m1.M44 * m2.M41)
+    m42 := (m1.M41 * m2.M12) + (m1.M42 * m2.M22) + (m1.M43 * m2.M32) + (m1.M44 * m2.M42)
+    m43 := (m1.M41 * m2.M13) + (m1.M42 * m2.M23) + (m1.M43 * m2.M33) + (m1.M44 * m2.M43)
+    m44 := (m1.M41 * m2.M14) + (m1.M42 * m2.M24) + (m1.M43 * m2.M34) + (m1.M44 * m2.M44)
+    return Matrix{ m11, m12, m13, m14,
+				   m21, m22, m23, m24,
+				   m31, m32, m33, m34,
+				   m41, m42, m43, m44 }
+}
 
-// member this.Transpose () =
-//     Matrix(this.M11, this.M21, this.M31, this.M41,
-//            this.M12, this.M22, this.M32, this.M42,
-//            this.M13, this.M23, this.M33, this.M43,
-//            this.M14, this.M24, this.M34, this.M44)
+func (m Matrix) Transpose() Matrix {
+    return Matrix{ m.M11, m.M21, m.M31, m.M41,
+           		   m.M12, m.M22, m.M32, m.M42,
+           		   m.M13, m.M23, m.M33, m.M43,
+		   		   m.M14, m.M24, m.M34, m.M44 }
+}
 
-// static member inline (*) (v : Vector3, m : Matrix) =
-//     let x = (v.X * m.M11) + (v.Y * m.M21) + (v.Z * m.M31) + m.M41
-//     let y = (v.X * m.M12) + (v.Y * m.M22) + (v.Z * m.M32) + m.M42
-//     let z = (v.X * m.M13) + (v.Y * m.M23) + (v.Z * m.M33) + m.M43
-//     Vector3.create(x, y, z)
+func (m Matrix) Mult(v Vector4) Vector4 {
+    x := (m.M11 * v.X) + (m.M12 * v.Y) + (m.M13 * v.Z) + (m.M14 * v.W)
+    y := (m.M21 * v.X) + (m.M22 * v.Y) + (m.M23 * v.Z) + (m.M24 * v.W)
+    z := (m.M31 * v.X) + (m.M32 * v.Y) + (m.M33 * v.Z) + (m.M34 * v.W)
+    w := (m.M41 * v.X) + (m.M42 * v.Y) + (m.M43 * v.Z) + (m.M44 * v.W)
+	return NewVector4(x, y, z, w)
+}
 
-// static member inline (*) (v : Vector4, m : Matrix) =
-//     let x = (v.X * m.M11) + (v.Y * m.M21) + (v.Z * m.M31) + (v.W * m.M41)
-//     let y = (v.X * m.M12) + (v.Y * m.M22) + (v.Z * m.M32) + (v.W * m.M42)
-//     let z = (v.X * m.M13) + (v.Y * m.M23) + (v.Z * m.M33) + (v.W * m.M43)
-//     let w = (v.X * m.M14) + (v.Y * m.M24) + (v.Z * m.M34) + (v.W * m.M44)
-//     Vector4.create(x, y, z, w)
+func (this Matrix) Invert() Matrix {
+    num1 := this.M11
+    num2 := this.M12
+    num3 := this.M13
+    num4 := this.M14
+    num5 := this.M21
+    num6 := this.M22
+    num7 := this.M23
+    num8 := this.M24
+    num9 := this.M31
+    num10 := this.M32
+    num11 := this.M33
+    num12 := this.M34
+    num13 := this.M41
+    num14 := this.M42
+    num15 := this.M43
+    num16 := this.M44
+    num17 := num11*num16 - num12*num15
+    num18 := num10*num16 - num12*num14
+    num19 := num10*num15 - num11*num14
+    num20 := num9*num16 - num12*num13
+    num21 := num9*num15 - num11*num13
+    num22 := num9*num14 - num10*num13
+    num23 := num6*num17 - num7*num18 + num8*num19
+    num24 := -(num5*num17 - num7*num20 + num8*num21)
+    num25 := num5*num18 - num6*num20 + num8*num22
+    num26 := -(num5*num19 - num6*num21 + num7*num22)
+    num27 := 1.0 / (num1*num23 + num2*num24 + num3*num25 + num4*num26)
+    num28 := num7*num16 - num8*num15
+    num29 := num6*num16 - num8*num14
+    num30 := num6*num15 - num7*num14
+    num31 := num5*num16 - num8*num13
+    num32 := num5*num15 - num7*num13
+    num33 := num5*num14 - num6*num13
+    num34 := num7*num12 - num8*num11
+    num35 := num6*num12 - num8*num10
+    num36 := num6*num11 - num7*num10
+    num37 := num5*num12 - num8*num9
+    num38 := num5*num11 - num7*num9
+    num39 := num5*num10 - num6*num9
 
-// static member inline (*) (m : Matrix, v : Vector4) =
-//     let x = (m.M11 * v.X) + (m.M12 * v.Y) + (m.M13 * v.Z) + (m.M14 * v.W)
-//     let y = (m.M21 * v.X) + (m.M22 * v.Y) + (m.M23 * v.Z) + (m.M24 * v.W)
-//     let z = (m.M31 * v.X) + (m.M32 * v.Y) + (m.M33 * v.Z) + (m.M34 * v.W)
-//     let w = (m.M41 * v.X) + (m.M42 * v.Y) + (m.M43 * v.Z) + (m.M44 * v.W)
-//     Vector4.create(x, y, z, w)
+    m11 := num23 * num27
+    m21 := num24 * num27
+    m31 := num25 * num27
+    m41 := num26 * num27
 
-// member this.Invert() =
-//     let num1 = this.M11
-//     let num2 = this.M12
-//     let num3 = this.M13
-//     let num4 = this.M14
-//     let num5 = this.M21
-//     let num6 = this.M22
-//     let num7 = this.M23
-//     let num8 = this.M24
-//     let num9 = this.M31
-//     let num10 = this.M32
-//     let num11 = this.M33
-//     let num12 = this.M34
-//     let num13 = this.M41
-//     let num14 = this.M42
-//     let num15 = this.M43
-//     let num16 = this.M44
-//     let num17 = num11*num16 - num12*num15
-//     let num18 = num10*num16 - num12*num14
-//     let num19 = num10*num15 - num11*num14
-//     let num20 = num9*num16 - num12*num13
-//     let num21 = num9*num15 - num11*num13
-//     let num22 = num9*num14 - num10*num13
-//     let num23 = num6*num17 - num7*num18 + num8*num19
-//     let num24 = -(num5*num17 - num7*num20 + num8*num21)
-//     let num25 = num5*num18 - num6*num20 + num8*num22
-//     let num26 = -(num5*num19 - num6*num21 + num7*num22)
-//     let num27 = 1.0 / (num1*num23 + num2*num24 + num3*num25 + num4*num26)
-//     let num28 = num7*num16 - num8*num15
-//     let num29 = num6*num16 - num8*num14
-//     let num30 = num6*num15 - num7*num14
-//     let num31 = num5*num16 - num8*num13
-//     let num32 = num5*num15 - num7*num13
-//     let num33 = num5*num14 - num6*num13
-//     let num34 = num7*num12 - num8*num11
-//     let num35 = num6*num12 - num8*num10
-//     let num36 = num6*num11 - num7*num10
-//     let num37 = num5*num12 - num8*num9
-//     let num38 = num5*num11 - num7*num9
-//     let num39 = num5*num10 - num6*num9
+    m12 := -(num2*num17 - num3*num18 + num4*num19)*num27
+    m22 := (num1*num17 - num3*num20 + num4*num21)*num27
+    m32 := -(num1*num18 - num2*num20 + num4*num22)*num27
+    m42 := (num1*num19 - num2*num21 + num3*num22)*num27
 
-//     let m11 = num23 * num27
-//     let m21 = num24 * num27
-//     let m31 = num25 * num27
-//     let m41 = num26 * num27
+    m13 := (num2*num28 - num3*num29 + num4*num30)*num27
+    m23 := -(num1*num28 - num3*num31 + num4*num32)*num27
+    m33 := (num1*num29 - num2*num31 + num4*num33)*num27
+    m43 := -(num1*num30 - num2*num32 + num3*num33)*num27
 
-//     let m12 = -(num2*num17 - num3*num18 + num4*num19)*num27
-//     let m22 = (num1*num17 - num3*num20 + num4*num21)*num27
-//     let m32 = -(num1*num18 - num2*num20 + num4*num22)*num27
-//     let m42 = (num1*num19 - num2*num21 + num3*num22)*num27
+    m14 := -(num2*num34 - num3*num35 + num4*num36)*num27
+    m24 := (num1*num34 - num3*num37 + num4*num38)*num27
+    m34 := -(num1*num35 - num2*num37 + num4*num39)*num27
+    m44 := (num1*num36 - num2*num38 + num3*num39)*num27
 
-//     let m13 = (num2*num28 - num3*num29 + num4*num30)*num27
-//     let m23 = -(num1*num28 - num3*num31 + num4*num32)*num27
-//     let m33 = (num1*num29 - num2*num31 + num4*num33)*num27
-//     let m43 = -(num1*num30 - num2*num32 + num3*num33)*num27
-
-//     let m14 = -(num2*num34 - num3*num35 + num4*num36)*num27
-//     let m24 = (num1*num34 - num3*num37 + num4*num38)*num27
-//     let m34 = -(num1*num35 - num2*num37 + num4*num39)*num27
-//     let m44 = (num1*num36 - num2*num38 + num3*num39)*num27
-
-//     Matrix(m11, m12, m13, m14,
-//            m21, m22, m23, m24,
-//            m31, m32, m33, m34,
-//            m41, m42, m43, m44)
+    return Matrix{ m11, m12, m13, m14,
+           		   m21, m22, m23, m24,
+           		   m31, m32, m33, m34,
+           		   m41, m42, m43, m44 }
+}
