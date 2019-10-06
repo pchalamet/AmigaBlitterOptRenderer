@@ -5,10 +5,6 @@ import "testing"
 import "math"
 
 
-func equalWithUncertainty(value, expected float64) bool {
-	return value - expected < 0.001
-}
-
 
 func (matrix Matrix) printMatrix (msg string) {
 	fmt.Println(msg)
